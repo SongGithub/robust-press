@@ -1,9 +1,8 @@
-[![Build Status](https://travis-ci.org/SongGithub/take-me-to-the-cloud.svg?branch=master)](https://travis-ci.org/SongGithub/take-me-to-the-cloud)
 
-# take-me-to-the-cloud
+# Robust Press
+[![Build Status](https://travis-ci.org/SongGithub/robust-press.svg?branch=master)](https://travis-ci.org/SongGithub/robust-press)
 
-
-> Take me to the cloud before you could take me to the moon
+> a Robust WordPress app
 
 
 ## System design goals
@@ -16,19 +15,19 @@
 - Easily reproducible. Most infrastructure are coded as templates, which allows it to be recreated as a separate stack with minimal reconfiguration (to `cfn/params/*.yaml`)
 - Idempotent. The use of Cloudformation helps with this property
 - Ease of deployment. Code for both application and infrastructre is automatically deployed through Travis machine user, once pushed to master branch.
-- Simplicity. The Sinatra app is packaged in Docker image which comes with all unnecessary dependencies installed in a minimal operating system. Plus, the docker image has been size-optimised by containing only binaries for installed dependencies. (Temporary files for installation have been disgarded during Docker image build)
+- Simplicity.
 
 ## Initial setup
 
 ### CI user (IAM) setup (Manual deploy)
 
-To create a CI user in AWS account with codeDeploy permission, locally run following after authenticated to AWS:
+To create a CI user in AWS account, locally run following after authenticated to AWS as Admin:
 - `bin/deploy_cfn cfn iam dev dev`
 
 Then please go to AWS console, manually create AccessKey. And note the key ID and secret. This is an one-off task
 , so simplicity overcomes repeatability. Then follow [instructions](https://docs.travis-ci.com/user/encryption-keys/)
 
-### setup VPC (Manual deploy)
+### Setup VPC (Manual deploy)
 locally run following after authenticated to AWS:
 
 - `bin/deploy_cfn cfn vpc dev dev`
@@ -59,9 +58,6 @@ downloade a file `sinatra.pem` to your default Download directory,
 
 *Note: Please ensure Bastion instance count is 0 after use, also there is a scheduled action that will scale off the Bastion ASG by 6pm everyday for security reason( to prevent cases that operators forgot to do so )*
 
-### ECR (Manual deploy)
-- `bin/deploy_cfn cfn ecr dev dev`
-
 ### EC2/ASG/ELB
 - chosen ami: `ami-09b42976632b27e9b`. It is a standard free tier AMI that optimised for ECS
 - `bin/deploy_cfn cfn app dev dev`
@@ -83,17 +79,8 @@ Operator needs to:
 name servers of current hostzone.
 - run `bin/deploy_cfn dns dev dev`. This will create a CNAME record pointing to ELB DNS.
 
-### TLS cert setup
-
-It is designed to use ACM to provision TLS certificate which to be hosted on the ELB. There are 2 steps to do so:
-- apply ACM cert with DNS validate method. running script `bin/create_dns_with_cert dev` will ensure a required temporary CNAME record to be created for DNS validateion purpose, and deleted after it is finished.
-- add a new Load Balancer Listener to current ELB, in order to enable TLS connection. Simply run `bin/add_lb_listeners dev`. The script will locate existing ACM cert ARN and ELB, and attach it to the new ELB listener.
-
 ## Assumptions
 - When the build pipeline is running, none of the Cloudformation stacks should be in `IN_PROGRESS` status
 
 ## Short-commings/TO-DOs
 - Permissions given to the CI user could be narrowed down. It has been given full-access to many types of resources.
-- EC2 instance type could be further refined to provide a more suitable and cheaper option.
-- The way docker image version get passed into EC2 instance could be simpler.
-- Param setup for Cloudformation templates forces me to repeat myself again and again, and it contains uncessary params otherwise it would complain. It could be swapped out entirely with other template engines such as Gomplate.
