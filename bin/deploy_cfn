@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+dcr="docker-compose run --rm"
+
+set -e
+
+if [ "$#" -ne 4 ]; then
+  echo "Usage: bin/deploy_cfn <cfn_path> <component_name> <env> <stackid>"
+  exit 1
+fi
+
+cfn_path=$1
+component_name=$2
+env=$3
+stackid=$4 # cfn stack identifier
+
+$dcr stackup sinatra-"$stackid"-"$component_name" up \
+    -t "$cfn_path"/"$component_name"/template.yaml \
+    -p params/"$env".yaml

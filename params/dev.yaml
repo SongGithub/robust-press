@@ -1,0 +1,8 @@
+---
+AllowedCidrRanges: "203.34.100.0/24"
+BastionSSHKeyName: "sinatra"
+DockerVersion: latest
+DomainName: dev.sinatra.midu.click
+EnvironmentName: sinatra-dev
+HostedZoneID: Z1B0L3OAN8GYAW
+KeyName: sinatra
