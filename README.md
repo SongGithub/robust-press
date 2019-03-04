@@ -71,8 +71,8 @@ as well as ELB that will do healh checks on instances
 
 ### DNS setup
 
-[https://http://dev-wp.midu.com.au](http://dev-wp.midu.com.au) is the current URL for the dev WordPress website,
-while prod has URL as [http://wordpress.midu.com.au](http://wordpress.midu.com.au)
+[http://dev-wp.midu.com.au](http://dev-wp.midu.com.au) is the current URL for the dev WordPress website,
+while prod has an URL [http://wordpress.midu.com.au](http://wordpress.midu.com.au)
 - run `bin/deploy_cfn dns dev`. This will create a CNAME record pointing to ELB DNS.
 
 ## Assumptions
