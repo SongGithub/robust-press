@@ -23,8 +23,6 @@ jobs:
   - stage: build_app
     script:
     - "./bin/build_publish_artifact $TRAVIS_BUILD_NUMBER"
-  - stage: deploy_app
-    script:
     - "./bin/deploy_cfn app dev $TRAVIS_BUILD_NUMBER"
   - stage: deploy_dns
     script:
