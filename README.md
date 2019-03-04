@@ -17,6 +17,7 @@
 - Ease of deployment. Code for both application and infrastructre is automatically deployed through Travis machine user, once pushed to master branch.
 - Simplicity.
 - Secure: RDS root secrets are saved to the Parameter Store, and use AWS Cloudformation `retrieve` function to decrypt
+- Dev env has exact same infrastructre setup, only difference is in configurations. To trigger a build to prod, just add a git tag!
 
 ## Initial setup
 
