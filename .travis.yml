@@ -9,23 +9,19 @@ before_install: "./bin/install_aws_cred"
 install: docker-compose pull --parallel
 jobs:
   include:
-  - stage: test
+  - stage: build_deploy_dev
     script:
-    - docker-compose run --rm lint
-  - stage: deploy_supporting_infra
-    script:
+    - "./bin/build_publish_artifact $TRAVIS_BUILD_NUMBER"
+    - "docker-compose run --rm lint"
     - "./bin/deploy_cfn infra dev"
     - "./bin/deploy_cfn securityGroups dev"
     - "./bin/deploy_cfn bastion dev"
     - "./bin/deploy_cfn ci dev"
     - "./bin/deploy_cfn rds dev"
     - "./bin/deploy_cfn s3 dev"
-  - stage: build_app
-    script:
-    - "./bin/build_publish_artifact $TRAVIS_BUILD_NUMBER"
+  # build_n_deploy_app
     - "./bin/deploy_cfn app dev $TRAVIS_BUILD_NUMBER"
-  - stage: deploy_dns
-    script:
+  # - stage: deploy_dns
     - "./bin/deploy_cfn dns dev"
 env:
   global:
