@@ -187,12 +187,10 @@ Resources:
 
       UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash
-
-          set -e
+          #!/bin/bash -xe
 
           # Start cfn-init
-          yum update -y && yum install -y aws-cfn-bootstrap python unzip
+          yum update -y && yum install -y aws-cfn-bootstrap python unzip tar.x86_64
           curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
           unzip awscli-bundle.zip
           ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
@@ -203,9 +201,14 @@ Resources:
           db_addr=$(aws rds describe-db-instances --query 'DBInstances[0].Endpoint.Address' --output text)
           echo $db_addr
           db_root_password=$(aws ssm get-parameters --name {{ $config.db.rootPasswordSSM }} --with-decryption --query 'Parameters[*].Value' --output text)
+          aws s3 cp s3://{{ $config.artifactStore.name }}/wpContent{{ $config.artifact_version }}.tar.gz the_artifact
+          mkdir -p wp-content && tar xf the_artifact -C wp-content
           image="wordpress:5.1.0-php7.1-apache"
-          docker pull "$image"
-          docker run -d -p 8000:80 -e WORDPRESS_DB_HOST="$db_addr":3306 -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD="$db_root_password" "$image"
+          docker run -d -p 8000:80 \
+            -e WORDPRESS_DB_HOST="$db_addr":3306 \
+            -e WORDPRESS_DB_USER=wordpress \
+            -e WORDPRESS_DB_PASSWORD="$db_root_password" \
+            -v $PWD/wp-content:/var/www/html/wp-content "$image"
 
           echo '### Wait until instance is registered as healthy in the ELB'
           until [ "$state" == "InService" ]; do

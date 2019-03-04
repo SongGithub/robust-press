@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # This script will pack files for the wp app as artefact and push to designated S3 bucket
 
-set -e
+set -ex
 
-if [ "$#" -ne 2 ]; then
-  echo "Usage: bin/deploy_cfn <component_name> <env>"
+if [ "$#" -ne 1 ]; then
+  echo "Usage: bin/build_publish_artifact <artifact_version>"
   exit 1
 fi
+version=${1:-0}
 
-env=${1:-dev}
-dcr="docker-compose run --rm"
-
-# build image
+# build artifact
+cd wordpress_files/wp-content
+tar czf ../../wpContent"$version".tar.gz .
+cd ../..
+aws s3 cp wpContent"$version".tar.gz s3://wp-content-2019

@@ -1,0 +1,16 @@
+{{- $config := (datasource "config") -}}
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "This stack maintains app artifact"
+Resources:
+  ArtifactStore:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: {{ $config.artifactStore.name }}
+      Tags:
+        - Key: stack
+          Value: !Sub ${AWS::StackName}
+        - Key: role
+          Value: wp artifact store
+      VersioningConfiguration:
+        Status: Enabled

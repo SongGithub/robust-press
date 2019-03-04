@@ -5,31 +5,33 @@ addons:
     - docker-ce
 services:
 - docker
-before_install: ./bin/install_aws_cred
+before_install: "./bin/install_aws_cred"
 install: docker-compose pull --parallel
 jobs:
   include:
-    - stage: test
-      script:
-        - bin/validate_cfn
-    - stage: deploy_supporting_infra
-      script:
-        - ./bin/deploy_cfn cfn vpc dev dev
-        - ./bin/deploy_cfn cfn bastion dev dev
-    - stage: build_app
-      script:
-        - ./bin/app_build_publish dev $TRAVIS_BUILD_NUMBER
-    - stage: deploy_app
-      script:
-        - ./bin/update_app $TRAVIS_BUILD_NUMBER
-    - stage: deploy_dns
-      script:
-        - ./bin/deploy_cfn cfn dns dev dev
-        - ./bin/add_lb_listeners dev
-
+  - stage: test
+    script:
+    - docker-compose run --rm lint
+  - stage: deploy_supporting_infra
+    script:
+    - "./bin/deploy_cfn infra dev"
+    - "./bin/deploy_cfn securityGroups dev"
+    - "./bin/deploy_cfn bastion dev"
+    - "./bin/deploy_cfn ci dev"
+    - "./bin/deploy_cfn rds dev"
+    - "./bin/deploy_cfn s3 dev"
+  - stage: build_app
+    script:
+    - "./bin/build_publish_artifact $TRAVIS_BUILD_NUMBER"
+  - stage: deploy_app
+    script:
+    - "./bin/deploy_cfn app dev $TRAVIS_BUILD_NUMBER"
+  - stage: deploy_dns
+    script:
+    - "./bin/deploy_cfn dns dev"
 env:
   global:
   # AWS_ACCESS_KEY_ID
-  - secure: P0cNIUaEmu3hpit484SI9+rKJx2TNgk4uCJ5RkXsBEL3mcsQeyP3eXtwx0vPL1RxFl1D3dfht4/UEn/EsXaqIU2mSqV9M74G/XhmLVDcyK1hKB5iZXoBzk/ZBM94NOknXK2scRWzYDww78gNeC8xyELzzf6KcZC5aKWxISx2v7sF7r9RaGb9UrZH3rWTO5RwJzpvbfKxfLEdMPHPcbXmvMz3x6VaMwrzKkaEIYadKOLsf2OgueJvPo27ISF2213iL8Yw5eJWoSSGIa2mr1Mf9OCq6AM3PFzsIoq5hJhJGByh6zwAJePJL+6x9ExETafxk5zu5QRyBFihfz4PUzgN4rKQs+nOjTcrjMbkydZ9wNEM7hbpd1NGn0LObWB7c3R/scat+8gRkY8wz8ufxCrkL5Cms88uHNk9x9irSQznVIRWztC+p4mpn9ik4+ajbLjR618IdckR5pcA6Q0n4oryQk4GVnACw2aOB8/XNeaHdiV1Ei7RMHZbREkCA9hmbI7nFQmi2juvDFnCCCa1GYqZ6f2wCMM215ut199KmuZ2wucJvI11Nf+4kQ0eI2w2n86hyjPF421SKr8FCIbkH6MxYPX9F55zAIV+lBxOW41fhsZswSjybUeYZPajvg2ew0dhbyKvJ5vG4zdJQyx7uzQycAYgBGuggNQQti/xaj+j8oI=
+  - secure: Mk9thv8E9J+L3chR4xQ2GwPPyF8dAY9+bzPuqjc4kN4WsB6TLf+RVh2C/POtwEVKuSQKS3e8hQi7mFzdBEwL63e1Xzd00eCCIqIghmhbX0+X1Xprkqtvym7G+TV2Ceyd0dBN9zVkBaPXgraTaKTrMs2bDQjVbi2ZWutz+6gg8lcfek4CZk3InpbSYBK4SzwdsIiyybqb0ppGjzU/+Y3+nwbeT6WcsOsjI13bab+S35zbn42TZXKO3MFOe3aspAqzrozG1Du1pNag5lk+bainjDvi041yClUuS02K717PAc1Kw4N5sdd+Qvz2iQvYRRNk6eTz+51k1GmA0BWbxH3x021OYW4A95ZzcrQ2jCf7FgqZG3ykw6PtVeUYQUI9JvKtDzmMaOoBV7vsZOVqGBNG8qJVO51ox37llq8nQg2Gc22LE+98Rk+n9lzCHKuEmbBDYlQLFEkaWYxPheco+wTY65c2B9JQRHhhos72BaLB3h+zccDSD4XbIg4/7cb61Qppc8JeVR5rsP4RPHMicvGFVlqUPLep9lSP8WEEKZ+EOw8TYKrkQ26NA2hRw/NavaypY6nXBuQntwaA/kM1sLouhhrtzt/7NGUKV1rLb93EOFAzme02vrTNaWQ6OUc4x5cOL4U7oz0uZdPVX1OId0aujc9H+NgurQNJyiYIFEWMk5o=
   # AWS_SECRET_ACCESS_KEY
-  - secure: O5PvpErHYbTYIUZd1ZIIUnGDRIZi1ygRhyRqfROhC2PKDtP4Qv+60vFT2R6jQTk7RCgc2cO0cLtvQjiaelfmDMzlkvLtGtC2PRic1UeqnF1XSAp7hqLlIuquN0vwLGK5lEW6DjUy0cjMRp/O2C3vqP+2zimOQaCSuUiKrOFV8Q06RTUxsELh09F6bw2cyUN5Qg9byo+JFFhBV3ru/cFT2Mle40CgN0bT4o/8uvEMRkfn7paL3fl1/CAPUp78VL2omjVtGizJcgZrOUeNfUXlteIVjxlRJZf2ZsRFMVCT2qO1yaO0BS3a/rtHYB6GDyZ37FY9NJRQZsOdbDYukkh7yPL7yKm1qqXyAbw8A/YiMHkf8mpWdh9eLJqOhGn08xk3NzCrxg7QRlbFTMeTcBx4+rnxD4MWY3UIUrr9QuK1LgloEfK4N6HrsjHwVlPAtt9FXD8SooqqYAVTxABk2XmtMaiT7TWlFwgVeGlZ1xpko8lKtMYGGpfG9PZHNXXi10e6sKI7IzH4wgVZC7U+KiEoD+tN7dnlZEWQN3kIIa9cNpOvCNmX7Tcx5cjIi0xA+rzW7kMIH0yaLykarOUQyIr+ooKh9BT7r6zEI23Zh/IfaQD6M26Msw3OKP8n6Uqnxs9uN4EZqdIXxvghfP1hnZT0gLMcR3EZ1D9/LvGiJiJn7Os=
+  - secure: lkbXx6bEPWWKuZpmvHcnMP/aJQjaAFQw3dE/AOlfQSSI/s6IdfdqI90+xOiPGAiQlmTeW50nlWaTIH4M1pE5Pm6SHyMRQIsIHcPhMnrq8JfAI8OekyTU1+2u0feApg7bGt5HTiD00ictEZvJPrcYlA7AueCs6ITBAWSGbEKtZPqEfuNiLrmPKraI3smNp6pcrs0xibbwiQMlK8bplsCdNyc3AsQKX+WbYb1nLo0qWzcc+0RfOvGT/bfRmd7IRZjMxVtGe7abbtNqBSebCDzVKlUR6ZcGad3CZYLZkOMSD3CMvWlQr/g01h8hwgvS5xZkeW78Moe0IoBQP3PuQRsA4UNjT7UCbMNcCAfTmGe/o8VcO/ieGXDFltwcODoJ8LgFcYBuSNCy8xRouBBGcgDUsEIJLQatm0Xnfk1KvWp/rvlRbQJ+/dkR0WlqwuJBduy9Ra4Dx0dIHf2tyy7Ouy/FPo5qSKJECn10uoUMP5s/vcrdEy7jKbaeQpH8JHqp+l8OeRjqgz5iLERU1SWIHxBqs2cB4oF2KCCHWVWzAZcVzqrkQm27+0g0pjLoZH7mFpTI8fd0j/QfMnaI844DQiiOcEGL5tr45VLIOkZltpqr+VyycMUWegziy8dpxGaR9b0bk5cgFM8zJ/WtRhjo5JSu5jd9zpHRTd4fJ1GrPqYrfDA=
