@@ -22,10 +22,9 @@ jobs:
     - stage: deploy_app
       script:
         - ./bin/update_app $TRAVIS_BUILD_NUMBER
-    - stage: deploy_dns_cert
+    - stage: deploy_dns
       script:
         - ./bin/deploy_cfn cfn dns dev dev
-        - ./bin/ensure_cert dev
         - ./bin/add_lb_listeners dev
 
 env:

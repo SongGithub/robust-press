@@ -1,0 +1,126 @@
+{{- $config := (datasource "config") -}}
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "This stack maintains security groups for the system"
+Resources:
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub bastion.{{ $config.global.environmentName}}
+      GroupDescription: Allow traffic from office range to bastion
+      VpcId:
+        Fn::ImportValue:
+          Fn::Sub: VpcId-{{ $config.global.environmentName}}
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: {{ $config.bastion.allowedCidrRanges }}
+      Tags:
+        - Key: Name
+          Value: !Sub bastion.{{ $config.global.environmentName}}
+
+  BastionAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub allow.bastion.access.{{ $config.global.environmentName}}
+      GroupDescription: Allow SSH From Bastion
+      VpcId:
+        Fn::ImportValue:
+          VpcId-{{ $config.global.environmentName}}
+      Tags:
+      - Key: Name
+        Value: !Sub allow.bastion.access.{{ $config.global.environmentName}}
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId: !Ref BastionSecurityGroup
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Amazon RDS cluster
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref WebSecurityGroup
+      VpcId:
+        Fn::ImportValue:
+          VpcId-{{ $config.global.environmentName }}
+
+  ELBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId:
+        Fn::ImportValue:
+          Fn::Sub: VpcId-{{ $config.global.environmentName }}
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '80'
+        ToPort: '8000'
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-EC2-ELB-SG
+
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn:
+      - ELBSecurityGroup
+    Properties:
+      GroupDescription: Security group for web instances
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: !Ref ELBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref BastionSecurityGroup
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        CidrIp: 0.0.0.0/0
+      VpcId:
+        Fn::ImportValue:
+          VpcId-{{ $config.global.environmentName }}
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-EC2-SecurityGroup
+
+Outputs:
+  BastionAccessSecurityGroup:
+    Description: to allow Bastion Instance accessing instances in the subnet
+    Value: !Ref BastionAccessSecurityGroup
+    Export:
+      Name: BastionAccessSecurityGroup-{{ $config.global.environmentName}}
+
+  BastionSecurityGroup:
+    Description: SG bound to the Bastion Instances
+    Value: !Ref BastionSecurityGroup
+    Export:
+      Name: BastionSecurityGroup-{{ $config.global.environmentName}}
+
+  DatabaseSecurityGroup:
+    Description: SG bound to database Instances
+    Value: !Ref DatabaseSecurityGroup
+    Export:
+      Name: DatabaseSecurityGroup-{{ $config.global.environmentName}}
+
+  ELBSecurityGroup:
+    Description: SG bound to ELB
+    Value: !Ref ELBSecurityGroup
+    Export:
+      Name: ELBSecurityGroup-{{ $config.global.environmentName}}
+
+  WebSecurityGroup:
+    Description: SG bound to web Instances
+    Value: !Ref WebSecurityGroup
+    Export:
+      Name: WebSecurityGroup-{{ $config.global.environmentName}}

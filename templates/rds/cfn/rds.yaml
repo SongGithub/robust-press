@@ -1,0 +1,45 @@
+{{- $config := (datasource "config") -}}
+---
+AWSTemplateFormatVersion:  "2010-09-09"
+Description: "This stack serves as foundation for the app. It contains VPC, subnet, NAT, EIP, etc"
+Resources:
+  DB:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    Properties:
+      AllocatedStorage: {{ $config.db.allocatedStorage }}
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: false
+      BackupRetentionPeriod: {{ $config.db.backupRetentionPeriod }}
+      CopyTagsToSnapshot: true
+      DBInstanceClass: {{ $config.db.dBInstanceClass }}
+      DBInstanceIdentifier: mySql{{ $config.global.environmentName | strings.ReplaceAll "-" "" }}
+      DBName: mySql{{ $config.global.environmentName | strings.ReplaceAll "-" "" }}
+      DBSubnetGroupName:
+        Fn::ImportValue:
+          DBSubnet-{{ $config.global.environmentName }}
+      EnableIAMDatabaseAuthentication: true
+      EnablePerformanceInsights: false
+      Engine: "MySQL"
+      EngineVersion: "5.7.23"
+      MasterUsername: "wordpress"
+      MasterUserPassword: {{`'{{resolve:ssm-secure:`}}{{ $config.db.rootPasswordSSM }}:1}}'
+      MultiAZ: true
+      Port: "3306"
+      PreferredBackupWindow: "12:00-13:00"
+      PreferredMaintenanceWindow: "Mon:15:00-Mon:16:00"
+      PubliclyAccessible: false
+      StorageEncrypted: false
+      StorageType: {{ $config.db.storageType }}
+      Tags:
+        - Key: "environment Name"
+          Value: {{ $config.global.environmentName }}
+      VPCSecurityGroups:
+        - Fn::ImportValue:
+            DatabaseSecurityGroup-{{ $config.global.environmentName}}
+Outputs:
+  DatabaseInstanceEndpointAddress:
+    Description: db Endpoint address
+    Value: !GetAtt DB.Endpoint.Address
+    Export:
+      Name: Database-{{ $config.global.environmentName }}

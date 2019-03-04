@@ -1,0 +1,21 @@
+---
+global:
+  environmentName: "prod-wp"
+
+app:
+  artifactVersion: "1.0.0"
+  instanceType: "t2.small"
+  minCount: "1"
+  maxCount: "3"
+  pauseTime: "PT15M"
+  replicaCount: "2"
+
+db:
+  allocatedStorage: "21"
+  backupRetentionPeriod: "3"
+  dBInstanceClass: "db.t2.small"
+  StorageType: "gp2"
+  rootPasswordSSM: "mysqlRootPasswordPROD"
+
+dns:
+  domainName: "wordpress.midu.com.au"

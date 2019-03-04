@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# This script will pack files for the wp app as artefact and push to designated S3 bucket
+
+set -e
+
+if [ "$#" -ne 2 ]; then
+  echo "Usage: bin/deploy_cfn <component_name> <env>"
+  exit 1
+fi
+
+env=${1:-dev}
+dcr="docker-compose run --rm"
+
+# build image

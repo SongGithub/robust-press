@@ -1,0 +1,21 @@
+---
+global:
+  environmentName: "dev-wp"
+
+app:
+  artifactVersion: "0.0.0"
+  instanceType: "t2.micro"
+  minCount: "1"
+  maxCount: "3"
+  pauseTime: "PT15M"
+  replicaCount: "1"
+
+db:
+  allocatedStorage: "20"
+  backupRetentionPeriod: "1"
+  dBInstanceClass: "db.t2.micro"
+  storageType: "standard"
+  rootPasswordSSM: "mysqlRootPasswordDEV"
+
+dns:
+  domainName: "dev-wp.midu.com.au"

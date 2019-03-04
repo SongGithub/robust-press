@@ -1,73 +1,14 @@
+{{- $config := (datasource "config") -}}
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: "This stack maintains app related resources, such as ELB, ASG, and EC2"
-
-
-Parameters:
-
-  EnvironmentName:
-    Description: The name to associate resources with
-    Type: String
-  KeyName:
-    Description: Application ssh login keypair name
-    Type: AWS::EC2::KeyPair::KeyName
-    Default: "sinatra"
-  AMIId:
-    Description: AMI Id.
-    Type: String
-    Default: ami-08c26730c8ee004fa
-  DesiredInstances:
-    Description: Application Desired Instances
-    Type: String
-    Default: "2"
-  DockerVersion:
-    Description: docker image tag
-    Type: String
-    Default: "latest"
-  AllowedCidrRanges:
-    Description: AllowedCidr used to the bastion
-    Type: String
-  BastionSSHKeyName:
-    Description: SSHkey name for the bastion box.
-    Type: String
-  HostedZoneID:
-    Description: "hosted zone id for the new sub domain"
-    Type: String
-  DomainName:
-    Description: "domain name want to register"
-    Type: String
-
-
 Resources:
 
   EC2LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub loggroup-ec2-${EnvironmentName}
+      LogGroupName: !Sub loggroup-ec2-{{ $config.global.environmentName }}
       RetentionInDays: 7
-
-  ELBSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allow http to client host
-      VpcId:
-        Fn::ImportValue:
-          Fn::Sub: VpcId-${EnvironmentName}
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '80'
-        ToPort: '80'
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: '443'
-        ToPort: '443'
-        CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-      - IpProtocol: "-1"
-        CidrIp: 0.0.0.0/0
-      Tags:
-      - Key: Name
-        Value: !Sub ${AWS::StackName}-EC2-ELB-SG
 
   ElasticLoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
@@ -78,21 +19,22 @@ Resources:
         Fn::Split:
           - ','
           - Fn::ImportValue:
-              Fn::Sub: PublicSubnets-${EnvironmentName}
+              Fn::Sub: PublicSubnets-{{ $config.global.environmentName }}
       CrossZone: true
       SecurityGroups:
-      - !Ref ELBSecurityGroup
+      - Fn::ImportValue:
+              Fn::Sub: ELBSecurityGroup-{{ $config.global.environmentName }}
       Scheme: "internet-facing"
       Listeners:
       - LoadBalancerPort: '80'
-        InstancePort: '80'
+        InstancePort: '8000'
         Protocol: TCP
         InstanceProtocol: TCP
       HealthCheck:
-        Target: !Sub HTTP:80/
+        Target: !Sub HTTP:8000/wp-admin/install.php
         HealthyThreshold: "2"
-        UnhealthyThreshold: "2"
-        Interval: "10"
+        UnhealthyThreshold: "5"
+        Interval: "30"
         Timeout: "5"
       ConnectionDrainingPolicy:
         Enabled: true
@@ -106,7 +48,7 @@ Resources:
       AutoScalingRollingUpdate:
         MaxBatchSize: 1
         MinInstancesInService: 1
-        PauseTime: PT15M
+        PauseTime: {{ $config.app.pauseTime }}
         WaitOnResourceSignals: True
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -114,44 +56,23 @@ Resources:
         Fn::Split:
           - ','
           - Fn::ImportValue:
-              Fn::Sub: PrivateSubnets-${EnvironmentName}
-      DesiredCapacity: !Ref DesiredInstances
+              Fn::Sub: PrivateSubnets-{{ $config.global.environmentName }}
+      DesiredCapacity: {{ $config.app.replicaCount }}
       HealthCheckGracePeriod: 500
       HealthCheckType: ELB
       LaunchConfigurationName: !Ref EC2ServerLaunchConfiguration
       LoadBalancerNames:
       - !Ref ElasticLoadBalancer
-      MinSize: "1"
-      MaxSize: "2"
+      MinSize: {{ $config.app.minCount }}
+      MaxSize: {{ $config.app.maxCount }}
       Tags:
       - Key: Name
-        Value: !Sub ${AWS::StackName}
+        Value: !Sub ${AWS::StackName}-wordpress
         PropagateAtLaunch: true
     CreationPolicy:
       ResourceSignal:
-        Count: !Ref DesiredInstances
-        Timeout: PT15M
-  # Assumption: BastionAccessSecurityGroup already created and exported
-  EC2SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    DependsOn:
-      - ELBSecurityGroup
-    Properties:
-      GroupDescription: EC2 Security Group
-      VpcId:
-        Fn::ImportValue:
-          Fn::Sub: VpcId-${EnvironmentName}
-      SecurityGroupEgress:
-      - IpProtocol: "-1"
-        CidrIp: 0.0.0.0/0
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        SourceSecurityGroupId: !Ref ELBSecurityGroup
-      Tags:
-      - Key: Name
-        Value: !Sub ${AWS::StackName}-EC2-SecurityGroup
+        Count: {{ $config.app.replicaCount }}
+        Timeout: {{ $config.app.pauseTime }}
 
   EC2ServerLaunchConfiguration:
     Type: "AWS::AutoScaling::LaunchConfiguration"
@@ -254,31 +175,37 @@ Resources:
                 - '/etc/awslogs/awslogs.conf'
                 - '/etc/awslogs/awscli.conf'
     Properties:
-      KeyName: !Ref KeyName
+      KeyName: {{ $config.app.keyPairName }}
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: !Ref AMIId
-      InstanceType: t2.micro
+      ImageId: {{ $config.global.amiID }}
+      InstanceType: {{ $config.app.instanceType }}
       SecurityGroups:
-      - !Ref EC2SecurityGroup
       - Fn::ImportValue:
-          !Sub BastionAccessSecurityGroup-${EnvironmentName}
+          BastionAccessSecurityGroup-{{ $config.global.environmentName }}
+      - Fn::ImportValue:
+          WebSecurityGroup-{{ $config.global.environmentName }}
+
       UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash -xe
+          #!/bin/bash
+
+          set -e
 
           # Start cfn-init
-          yum install -y aws-cfn-bootstrap python unzip
-
-          # install aws cli
+          yum update -y && yum install -y aws-cfn-bootstrap python unzip
           curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
           unzip awscli-bundle.zip
           ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
           export PATH=/usr/local/bin:$PATH
           aws --version
-
-          /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource EC2ServerLaunchConfiguration || error_exit 'Failed to run cfn-init'
-          eval $(aws ecr get-login --no-include-email --region ${AWS::Region})
-          docker run -d -p 80:9292 ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${EnvironmentName}:${DockerVersion}
+          /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource EC2ServerLaunchConfiguration || error_exit
+          export AWS_DEFAULT_REGION=${AWS::Region}
+          db_addr=$(aws rds describe-db-instances --query 'DBInstances[0].Endpoint.Address' --output text)
+          echo $db_addr
+          db_root_password=$(aws ssm get-parameters --name {{ $config.db.rootPasswordSSM }} --with-decryption --query 'Parameters[*].Value' --output text)
+          image="wordpress:5.1.0-php7.1-apache"
+          docker pull "$image"
+          docker run -d -p 8000:80 -e WORDPRESS_DB_HOST="$db_addr":3306 -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD="$db_root_password" "$image"
 
           echo '### Wait until instance is registered as healthy in the ELB'
           until [ "$state" == "InService" ]; do
@@ -303,8 +230,8 @@ Resources:
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ServerInstanceRole-${EnvironmentName}
-      Path: /app/
+      RoleName: !Sub ServerInstanceRole-{{ $config.global.environmentName }}
+      Path: /wp/
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -315,7 +242,7 @@ Resources:
           Action:
           - sts:AssumeRole
       Policies:
-        - PolicyName: !Sub server-${EnvironmentName}
+        - PolicyName: !Sub server-{{ $config.global.environmentName }}
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -346,36 +273,42 @@ Resources:
               - cloudwatch:EnableAlarmActions
               - cloudwatch:PutMetricAlarm
               Resource: "*"
-        - PolicyName: allow-read-only-access-to-ecr
+        - PolicyName: allow-access-rds
           PolicyDocument:
             Version: 2012-10-17
             Statement:
             - Effect: Allow
               Action:
-              - ecr:GetAuthorizationToken
-              - ecr:BatchCheckLayerAvailability
-              - ecr:GetDownloadUrlForLayer
-              - ecr:GetRepositoryPolicy
-              - ecr:DescribeRepositories
-              - ecr:ListImages
-              - ecr:BatchGetImage
-              Resource:
-                Fn::ImportValue:
-                      Fn::Sub: ecr-repo-${EnvironmentName}
+              - "rds:*"
+              Resource: "*"
+        - PolicyName: allow-access-s3-artifacts
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
             - Effect: Allow
               Action:
-              - ecr:GetAuthorizationToken
+              - "s3:Get*"
+              - "s3:List*"
               Resource: "*"
-
+        - PolicyName: allow-access-ssm-parameters
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+            - Effect: Allow
+              Action:
+              - "ssm:Describe*"
+              - "ssm:Get*"
+              - "ssm:List*"
+              Resource: "*"
 
 Outputs:
   ElasticLoadBalancer:
     Description: LB for the app
     Value: !Ref ElasticLoadBalancer
     Export:
-      Name: !Sub ElasticLoadBalancer-${EnvironmentName}
+      Name: !Sub ElasticLoadBalancer-{{ $config.global.environmentName }}
   ElasticLoadBalancerDNS:
     Description: DNS name of the LB for the app
     Value: !GetAtt ElasticLoadBalancer.DNSName
     Export:
-      Name: !Sub ElasticLoadBalancerDNS-${EnvironmentName}
+      Name: !Sub ElasticLoadBalancerDNS-{{ $config.global.environmentName }}

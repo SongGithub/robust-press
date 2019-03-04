@@ -1,0 +1,16 @@
+{{- $config := (datasource "config") -}}
+---
+AWSTemplateFormatVersion:  "2010-09-09"
+Description: "This stack maintains CNAME Resource for the app, given hosted zone"
+Resources:
+  # a cname record to point website url to its ELB dns
+  webServiceCName:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: {{ $config.dns.hostedZoneID }}
+      Name: {{ $config.dns.domainName }}
+      Type: CNAME
+      TTL: 60
+      ResourceRecords:
+      - Fn::ImportValue:
+          Fn::Sub: ElasticLoadBalancerDNS-{{ $config.global.environmentName }}

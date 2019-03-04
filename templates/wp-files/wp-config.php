@@ -1,5 +1,5 @@
 {{- $config := (datasource "config") -}}
-{{ $config.dns.domainName }}
+
 <?php
 /**
  * The base configuration for WordPress
@@ -22,6 +22,10 @@
 
 // ** MySQL settings - You can get this info from your web host ** //
 /** The name of the database for WordPress */
+
+define( 'WP_HOME', 'http://{{ $config.dns.domainName }}' );
+define( 'WP_SITEURL', 'http://{{ $config.dns.domainName }}' );
+
 define( 'DB_NAME', 'wordpress');
 
 /** MySQL database username */

@@ -1,51 +1,14 @@
+{{- $config := (datasource "config") -}}
 ---
 AWSTemplateFormatVersion:  "2010-09-09"
-Description: "This stack holds bastion setup, including ASG, SG rules"
+Description: "This stack holds bastion setup, including ASG"
 
-
-Parameters:
-
-  AllowedCidrRanges:
-    Description: AllowedCidr used to the bastion
-    Type: String
-  BastionSSHKeyName:
-    Description: SSHkey name for the bastion box.
-    Type: String
-  BastionInstanceType:
-    Description: Instance type for bastion ec2 box.
-    Type: String
-    Default: t2.nano
-  EnvironmentName:
-    Description: EnvironmentName aka stack identifier
-    Type: String
-  AllowedCidrRanges:
-    Description: AllowedCidr used to the bastion
-    Type: String
-  BastionSSHKeyName:
-    Description: SSHkey name for the bastion box.
-    Type: String
-  HostedZoneID:
-    Description: "hosted zone id for the new sub domain"
-    Type: String
-  DomainName:
-    Description: "domain name want to register"
-    Type: String
-  DockerVersion:
-    Description: docker image tag
-    Type: String
-    Default: "latest"
-  KeyName:
-    Description: Application ssh login keypair name
-    Type: AWS::EC2::KeyPair::KeyName
-    Default: "sinatra"
-
-# assume that VPC has been created and essential values exported
 Resources:
-
+  # assume that VPC has been created and essential values exported
   BastionASG:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:
-      AutoScalingGroupName: !Sub bastion.${EnvironmentName}
+      AutoScalingGroupName: !Sub bastion.{{ $config.global.environmentName}}
       AvailabilityZones:
         Fn::GetAZs:
           Ref: "AWS::Region"
@@ -57,7 +20,7 @@ Resources:
       MaxSize: 1
       Tags:
         - Key: Name
-          Value: !Sub bastion.${EnvironmentName}
+          Value: !Sub bastion.{{ $config.global.environmentName}}
           PropagateAtLaunch: true
       TerminationPolicies:
         - OldestInstance
@@ -65,13 +28,12 @@ Resources:
         Fn::Split:
           - ','
           - Fn::ImportValue:
-              Fn::Sub: PublicSubnets-${EnvironmentName}
+              Fn::Sub: PublicSubnets-{{ $config.global.environmentName}}
 
   BastionLaunchConfiguration:
     Type: "AWS::AutoScaling::LaunchConfiguration"
     Metadata:
       AWS::CloudFormation::Init:
-
         config:
           packages:
             yum:
@@ -128,13 +90,13 @@ Resources:
                 - '/etc/awslogs/awscli.conf'
 
     Properties:
-      KeyName: !Ref BastionSSHKeyName
-      # ImageId: ami-00e17d1165b9dd3ec
-      ImageId: ami-09b42976632b27e9b
-      InstanceType: !Ref BastionInstanceType
+      KeyName: {{ $config.bastion.bastionSSHKeyName }}
+      ImageId: {{ $config.bastion.bastionAmiID }}
+      InstanceType: {{ $config.bastion.instanceType }}
       IamInstanceProfile: !Ref BastionProfile
       SecurityGroups:
-      - !Ref BastionSecurityGroup
+      - Fn::ImportValue:
+          BastionSecurityGroup-{{ $config.global.environmentName}}
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
@@ -149,7 +111,7 @@ Resources:
   BastionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName : !Sub bastion-${EnvironmentName}
+      LogGroupName : !Sub bastion-{{ $config.global.environmentName}}
       RetentionInDays: 7
 
   BastionProfile:
@@ -186,40 +148,6 @@ Resources:
             Resource:
             - arn:aws:logs:*:*:*
 
-  BastionSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: !Sub bastion.${EnvironmentName}
-      GroupDescription: Allow traffic from office range to bastion
-      VpcId:
-        Fn::ImportValue:
-          Fn::Sub: VpcId-${EnvironmentName}
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: !Sub ${AllowedCidrRanges}
-      Tags:
-        - Key: Name
-          Value: !Sub bastion.${EnvironmentName}
-
-  BastionAccessSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: !Sub allow.bastion.access.${EnvironmentName}
-      GroupDescription: Allow SSH From Bastion
-      VpcId:
-        Fn::ImportValue:
-          Fn::Sub: VpcId-${EnvironmentName}
-      Tags:
-      - Key: Name
-        Value: !Sub allow.bastion.access.${EnvironmentName}
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        SourceSecurityGroupId: !Ref BastionSecurityGroup
-
   ScheduledActionDown:
     Type: AWS::AutoScaling::ScheduledAction
     Properties:
@@ -228,11 +156,3 @@ Resources:
       MinSize: 0
       MaxSize: 1
       Recurrence: "0 7 * * *"
-
-
-Outputs:
-  BastionAccessSecurityGroup:
-    Description: Bastion Instance
-    Value: !Ref BastionAccessSecurityGroup
-    Export:
-      Name: !Sub BastionAccessSecurityGroup-${EnvironmentName}

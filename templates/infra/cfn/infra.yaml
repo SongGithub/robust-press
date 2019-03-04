@@ -1,71 +1,24 @@
+{{- $config := (datasource "config") -}}
 ---
 AWSTemplateFormatVersion:  "2010-09-09"
 Description: "This stack serves as foundation for the app. It contains VPC, subnet, NAT, EIP, etc"
-
-Parameters:
-
-  EnvironmentName:
-    Description: The name to associate resources with
-    Type: String
-  VpcCIDR:
-    Description: Please enter the IP CIDR range
-    Type: String
-    Default: 192.168.0.0/16
-  AvailabilityZones:
-    Description: The AZs in the target region
-    Type: CommaDelimitedList
-    Default: ap-southeast-2a,ap-southeast-2b,ap-southeast-2c
-  PublicSubnetCIDR:
-    Description: The Public CIDR Ranges
-    Type: CommaDelimitedList
-    Default: 192.168.0.0/20,192.168.16.0/20,192.168.32.0/20,192.168.96.0/20
-  PrivateSubnetCIDR:
-    Description: The Private CIDR Ranges
-    Type: CommaDelimitedList
-    Default: 192.168.48.0/20,192.168.64.0/20,192.168.80.0/20
-  VpcFlowLogRetention:
-    Description: Flow Log Retention in Days
-    Type: String
-    Default: 3
-  KeyName:
-    Description: Application ssh login keypair name
-    Type: AWS::EC2::KeyPair::KeyName
-    Default: "sinatra"
-  DockerVersion:
-    Description: docker image tag
-    Type: String
-    Default: "latest"
-  AllowedCidrRanges:
-    Description: AllowedCidr used to the bastion
-    Type: String
-  BastionSSHKeyName:
-    Description: SSHkey name for the bastion box.
-    Type: String
-  HostedZoneID:
-    Description: "hosted zone id for the new sub domain"
-    Type: String
-  DomainName:
-    Description: "domain name want to register"
-    Type: String
-
-
 Resources:
 
   VPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Ref VpcCIDR
+      CidrBlock: {{ $config.infra.vpcCIDR }}
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-vpc
+          Value: {{ $config.global.environmentName }}-vpc
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: !Ref EnvironmentName
+          Value: {{ $config.global.environmentName }}
 
   FlowLogRole:
     Type: AWS::IAM::Role
@@ -80,7 +33,7 @@ Resources:
           Action:
             - "sts:AssumeRole"
       Path: "/"
-      RoleName: !Sub ${EnvironmentName}-vpc-flow-log
+      RoleName: {{ $config.global.environmentName }}-vpc-flow-log
 
   FlowLogPolicy:
     Type: AWS::IAM::Policy
@@ -104,8 +57,8 @@ Resources:
   CloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub ${EnvironmentName}-flow-logs
-      RetentionInDays: !Ref VpcFlowLogRetention
+      LogGroupName: {{ $config.global.environmentName }}-flow-logs
+      RetentionInDays: {{ $config.infra.vpcFlowLogRetention }}
 
   FlowLog:
     Type: AWS::EC2::FlowLog
@@ -126,78 +79,92 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 0, !Ref AvailabilityZones ]
-      CidrBlock: !Select [ 0, !Ref PublicSubnetCIDR ]
+      AvailabilityZone: !Select [ 0, {{ $config.infra.availabilityZones }} ]
+      CidrBlock: !Select [ 0, {{ $config.infra.publicSubnetCIDR }} ]
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-public-a
+          Value: {{ $config.global.environmentName }}-public-a
 
   PublicSubnetB:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 1, !Ref AvailabilityZones ]
-      CidrBlock: !Select [ 1, !Ref PublicSubnetCIDR ]
+      AvailabilityZone: !Select [ 1, {{ $config.infra.availabilityZones }} ]
+      CidrBlock: !Select [ 1, {{ $config.infra.publicSubnetCIDR }} ]
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-public-b
+          Value: {{ $config.global.environmentName }}-public-b
 
   PublicSubnetC:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 2, !Ref AvailabilityZones ]
-      CidrBlock: !Select [ 2, !Ref PublicSubnetCIDR ]
+      AvailabilityZone: !Select [ 2, {{ $config.infra.availabilityZones }} ]
+      CidrBlock: !Select [ 2, {{ $config.infra.publicSubnetCIDR }} ]
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-public-c
+          Value: {{ $config.global.environmentName }}-public-c
 
-  PublicServiceSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 2, !Ref AvailabilityZones ]
-      CidrBlock: !Select [ 3, !Ref PublicSubnetCIDR ]
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-service-c
 
   PrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 0, !Ref AvailabilityZones ]
-      CidrBlock: !Select [ 0, !Ref PrivateSubnetCIDR ]
+      AvailabilityZone: !Select [ 0, {{ $config.infra.availabilityZones }} ]
+      CidrBlock: !Select [ 0, {{ $config.infra.privateSubnetCIDR }} ]
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-private-a
+          Value: {{ $config.global.environmentName }}-private-a
 
   PrivateSubnetB:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 1, !Ref AvailabilityZones ]
-      CidrBlock: !Select [ 1, !Ref PrivateSubnetCIDR ]
+      AvailabilityZone: !Select [ 1, {{ $config.infra.availabilityZones }} ]
+      CidrBlock: !Select [ 1, {{ $config.infra.privateSubnetCIDR }} ]
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-private-b
+          Value: {{ $config.global.environmentName }}-private-b
 
   PrivateSubnetC:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 2, !Ref AvailabilityZones ]
-      CidrBlock: !Select [ 2, !Ref PrivateSubnetCIDR ]
+      AvailabilityZone: !Select [ 2, {{ $config.infra.availabilityZones }} ]
+      CidrBlock: !Select [ 2, {{ $config.infra.privateSubnetCIDR }} ]
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-private-c
+          Value: {{ $config.global.environmentName }}-private-c
+
+  DBSubnet:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: subnet for db
+      DBSubnetGroupName: dbSubnet
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+      Tags:
+        - Key: Name
+          Value: {{ $config.global.environmentName }}-db
+
+  PublicServiceSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, {{ $config.infra.availabilityZones }} ]
+      CidrBlock: !Select [ 3, {{ $config.infra.publicSubnetCIDR }} ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: {{ $config.global.environmentName }}-service-c
 
   NatGatewayAEIP:
     Type: AWS::EC2::EIP
@@ -241,7 +208,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-public
+          Value: {{ $config.global.environmentName }}-public
 
   DefaultPublicRoute:
     Type: AWS::EC2::Route
@@ -281,7 +248,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-private-a
+          Value: {{ $config.global.environmentName }}-private-a
 
   DefaultPrivateRouteA:
     Type: AWS::EC2::Route
@@ -302,7 +269,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-private-b
+          Value: {{ $config.global.environmentName }}-private-b
 
   DefaultPrivateRouteB:
     Type: AWS::EC2::Route
@@ -323,7 +290,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-private-c
+          Value: {{ $config.global.environmentName }}-private-c
 
   DefaultPrivateRouteC:
     Type: AWS::EC2::Route
@@ -343,40 +310,46 @@ Outputs:
     Description: ID of the created VPC
     Value: !Ref VPC
     Export:
-      Name: !Join ["-", ["VpcId", !Ref EnvironmentName]]
+      Name: !Join ["-", ["VpcId", {{ $config.global.environmentName }}]]
 
   VpcName:
     Description: Name of the created VPC
-    Value: !Sub ${EnvironmentName}-vpc
+    Value: {{ $config.global.environmentName }}-vpc
     Export:
-      Name: !Join ["-", ["VpcName", !Ref EnvironmentName]]
+      Name: !Join ["-", ["VpcName", {{ $config.global.environmentName }}]]
 
   PublicSubnets:
     Description: A list of the public subnets
     Value: !Join [ ",", [ !Ref PublicSubnetA, !Ref PublicSubnetB, !Ref PublicSubnetC ]]
     Export:
-      Name: !Join ["-", ["PublicSubnets", !Ref EnvironmentName]]
+      Name: !Join ["-", ["PublicSubnets", {{ $config.global.environmentName }}]]
 
   PrivateSubnets:
     Description: A list of the private subnets
     Value: !Join [ ",", [ !Ref PrivateSubnetA, !Ref PrivateSubnetB, !Ref PrivateSubnetC ]]
     Export:
-      Name: !Join ["-", ["PrivateSubnets", !Ref EnvironmentName]]
+      Name: !Join ["-", ["PrivateSubnets", {{ $config.global.environmentName }}]]
 
   NetworkCidr:
-    Description: Network cidr used by ${EnvironmentName} cluster.
-    Value: !Ref VpcCIDR
+    Description: Network cidr used by {{ $config.global.environmentName }}.
+    Value: {{ $config.infra.vpcCIDR }}
     Export:
-      Name: !Join ["-", ["NetworkCidr", !Ref EnvironmentName]]
+      Name: !Join ["-", ["NetworkCidr", {{ $config.global.environmentName }}]]
 
   NatGateways:
     Description: Natgateway logical ids in
     Value: !Join [ ",", [ !Ref NatGatewayA, !Ref NatGatewayB, !Ref NatGatewayC ]]
     Export:
-      Name: !Join ["-", ["NatGateways", !Ref EnvironmentName]]
+      Name: !Join ["-", ["NatGateways", {{ $config.global.environmentName }}]]
 
   PublicServiceSubnet:
     Description: Service subnet which is used to provision utilities e.g. bastion.
     Value: !Ref PublicServiceSubnet
     Export:
-      Name: !Join ["-", ["PublicServiceSubnet", !Ref EnvironmentName]]
+      Name: !Join ["-", ["PublicServiceSubnet", {{ $config.global.environmentName }}]]
+
+  DBSubnet:
+    Description: The DB subnet.
+    Value: !Ref DBSubnet
+    Export:
+      Name: !Join ["-", ["DBSubnet", {{ $config.global.environmentName }}]]

@@ -1,50 +1,13 @@
+{{- $config := (datasource "config") -}}
 ---
 AWSTemplateFormatVersion:  "2010-09-09"
 Description: "This stack contains service user and its permission control"
-
-
-Parameters:
-  AllowedCidrRanges:
-    Description: AllowedCidr used to the bastion
-    Type: String
-  BastionSSHKeyName:
-    Description: SSHkey name for the bastion box.
-    Type: String
-  BastionInstanceType:
-    Description: Instance type for bastion ec2 box.
-    Type: String
-    Default: t2.nano
-  EnvironmentName:
-    Description: EnvironmentName aka stack identifier
-    Type: String
-  AllowedCidrRanges:
-    Description: AllowedCidr used to the bastion
-    Type: String
-  BastionSSHKeyName:
-    Description: SSHkey name for the bastion box.
-    Type: String
-  HostedZoneID:
-    Description: "hosted zone id for the new sub domain"
-    Type: String
-  DomainName:
-    Description: "domain name want to register"
-    Type: String
-  DockerVersion:
-    Description: docker image tag
-    Type: String
-    Default: "latest"
-  KeyName:
-    Description: Application ssh login keypair name
-    Type: AWS::EC2::KeyPair::KeyName
-    Default: "sinatra"
-
-
 Resources:
 
-  sinatraCiBotGroup:
+  wpCiBotGroup:
     Type: AWS::IAM::Group
     Properties:
-      GroupName: sinatraCiBotGroup
+      GroupName: wpCiBotGroup
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
         - arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess
@@ -128,5 +91,5 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       Groups:
-        - sinatraCiBotGroup
-      UserName: !Sub ${EnvironmentName}-travis-ci
+        - wpCiBotGroup
+      UserName: {{ $config.global.environmentName }}-travis-ci

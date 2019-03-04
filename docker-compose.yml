@@ -1,32 +1,22 @@
 ---
 version: "3.4"
-
 services:
-  wordpress:
-    depends_on:
-      - db
-    image: wordpress:5.1.0-php7.1-apache
+  kt:
+    image: myobplatform/kt:2.3.1
     volumes:
-      - type: bind
-        source: ./wordpress_files
-        target: /var/www/html
-    ports:
-      - "8000:80"
-    restart: always
+      - "$HOME/.kube:/root/.kube"
+      - "$HOME/.aws:/root/.aws"
+      - ".:/app"
     environment:
-      WORDPRESS_DB_HOST: db:3306
-      WORDPRESS_DB_USER: wordpress
-      WORDPRESS_DB_PASSWORD: my_wordpress_db_password
-  db:
-    image: mysql:5.7
-    volumes:
-      - db_data:/var/lib/mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: my_db_root_password
-      MYSQL_DATABASE: wordpress
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: my_wordpress_db_password
+      AWS_REGION: "ap-southeast-2"
 
-volumes:
-    db_data: {}
+  lint:
+    volumes:
+      - ".:/yaml"
+    image: sdesbure/yamllint
+    entrypoint:
+      - yamllint
+    command:
+      - -d
+      - "{extends: default, rules: {line-length: {max: 120, level: warning}}}"
+      - "./envs"
