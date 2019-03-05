@@ -14,7 +14,7 @@ db:
   allocatedStorage: "21"
   backupRetentionPeriod: "3"
   dBInstanceClass: "db.t2.small"
-  StorageType: "gp2"
+  storageType: "gp2"
   rootPasswordSSM: "mysqlRootPasswordPROD"
 
 dns:

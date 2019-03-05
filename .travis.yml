@@ -10,6 +10,7 @@ install: docker-compose pull --parallel
 jobs:
   include:
   - stage: build_deploy_dev
+    if: tag IS blank
     script:
       - "docker-compose run --rm lint"
       - "./bin/deploy_cfn infra"
@@ -20,9 +21,7 @@ jobs:
       - "./bin/deploy_cfn securityGroups dev"
       - "./bin/deploy_cfn bastion dev"
       - "travis_wait ./bin/deploy_cfn rds dev"
-    # build_n_deploy_app
       - "./bin/deploy_cfn app dev $TRAVIS_BUILD_NUMBER"
-    # - stage: deploy_dns
       - "./bin/deploy_cfn dns dev"
 
   - stage: build_deploy_prod
@@ -31,9 +30,7 @@ jobs:
       - "./bin/deploy_cfn securityGroups prod"
       - "./bin/deploy_cfn bastion prod"
       - "travis_wait ./bin/deploy_cfn rds prod"
-    # build_n_deploy_app
       - "./bin/deploy_cfn app prod $TRAVIS_BUILD_NUMBER"
-    # - stage: deploy_dns
       - "./bin/deploy_cfn dns prod"
 
 env:
