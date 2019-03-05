@@ -187,7 +187,10 @@ Resources:
 
       UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash -xe
+          #!/bin/bash
+
+          set -e
+          exec > >(tee /var/log/user-data.log|logger -t user-data ) 2>&1
 
           # Start cfn-init
           yum update -y && yum install -y aws-cfn-bootstrap python unzip tar.x86_64
@@ -198,7 +201,7 @@ Resources:
           aws --version
           /opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource EC2ServerLaunchConfiguration || error_exit
           export AWS_DEFAULT_REGION=${AWS::Region}
-          db_addr=$(aws rds describe-db-instances --query 'DBInstances[0].Endpoint.Address' --output text)
+          db_addr=$(aws rds describe-db-instances --db-instance-identifier mySql{{ $config.global.environmentName | strings.ReplaceAll "-" "" }} --query 'DBInstances[0].Endpoint.Address' --output text)
           echo $db_addr
           db_root_password=$(aws ssm get-parameters --name {{ $config.db.rootPasswordSSM }} --with-decryption --query 'Parameters[*].Value' --output text)
           aws s3 cp s3://{{ $config.artifactStore.name }}/wpContent{{ $config.artifact_version }}.tar.gz the_artifact
