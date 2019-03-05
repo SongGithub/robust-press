@@ -11,14 +11,15 @@ jobs:
   include:
   - stage: build_deploy_dev
     script:
-      - "./bin/build_publish_artifact $TRAVIS_BUILD_NUMBER"
       - "docker-compose run --rm lint"
       - "./bin/deploy_cfn infra"
       - "./bin/deploy_cfn ci"
+      - "./bin/deploy_cfn s3"
+      - "./bin/build_publish_artifact $TRAVIS_BUILD_NUMBER"
+
       - "./bin/deploy_cfn securityGroups dev"
       - "./bin/deploy_cfn bastion dev"
       - "./bin/deploy_cfn rds dev"
-      - "./bin/deploy_cfn s3 dev"
     # build_n_deploy_app
       - "./bin/deploy_cfn app dev $TRAVIS_BUILD_NUMBER"
     # - stage: deploy_dns

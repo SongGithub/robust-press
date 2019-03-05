@@ -17,9 +17,9 @@ if [ -z "$env" ]; then
   $dcr kt clean && $dcr kt deploy -t cfn \
     -c "$component_name" \
     -e base
+else
+  $dcr kt clean && $dcr kt deploy -t cfn \
+    -c "$component_name" \
+    -e base -e "$env" \
+    -p artifact_version="$artifact_version"
 fi
-
-$dcr kt clean && $dcr kt deploy -t cfn \
-  -c "$component_name" \
-  -e base -e "$env" \
-  -p artifact_version="$artifact_version"
