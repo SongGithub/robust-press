@@ -13,10 +13,10 @@ jobs:
     script:
       - "./bin/build_publish_artifact $TRAVIS_BUILD_NUMBER"
       - "docker-compose run --rm lint"
-      - "./bin/deploy_cfn infra dev"
+      - "./bin/deploy_cfn infra"
+      - "./bin/deploy_cfn ci"
       - "./bin/deploy_cfn securityGroups dev"
       - "./bin/deploy_cfn bastion dev"
-      - "./bin/deploy_cfn ci dev"
       - "./bin/deploy_cfn rds dev"
       - "./bin/deploy_cfn s3 dev"
     # build_n_deploy_app
@@ -27,12 +27,9 @@ jobs:
   - stage: build_deploy_prod
     if: tag IS present
     script:
-      - "./bin/deploy_cfn infra prod"
       - "./bin/deploy_cfn securityGroups prod"
       - "./bin/deploy_cfn bastion prod"
-      - "./bin/deploy_cfn ci prod"
       - "./bin/deploy_cfn rds prod"
-      - "./bin/deploy_cfn s3 prod"
     # build_n_deploy_app
       - "./bin/deploy_cfn app prod $TRAVIS_BUILD_NUMBER"
     # - stage: deploy_dns

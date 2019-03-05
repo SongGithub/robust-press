@@ -92,4 +92,4 @@ Resources:
     Properties:
       Groups:
         - wpCiBotGroup
-      UserName: {{ $config.global.environmentName }}-travis-ci
+      UserName: {{ $config.global.appname }}-travis-ci

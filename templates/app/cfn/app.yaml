@@ -19,11 +19,11 @@ Resources:
         Fn::Split:
           - ','
           - Fn::ImportValue:
-              Fn::Sub: PublicSubnets-{{ $config.global.environmentName }}
+              Fn::Sub: PublicSubnets-wordpress
       CrossZone: true
       SecurityGroups:
       - Fn::ImportValue:
-              Fn::Sub: ELBSecurityGroup-{{ $config.global.environmentName }}
+          ELBSecurityGroup-{{ $config.global.environmentName }}
       Scheme: "internet-facing"
       Listeners:
       - LoadBalancerPort: '80'
@@ -56,7 +56,7 @@ Resources:
         Fn::Split:
           - ','
           - Fn::ImportValue:
-              Fn::Sub: PrivateSubnets-{{ $config.global.environmentName }}
+              Fn::Sub: PrivateSubnets-wordpress
       DesiredCapacity: {{ $config.app.replicaCount }}
       HealthCheckGracePeriod: 500
       HealthCheckType: ELB

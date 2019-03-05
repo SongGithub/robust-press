@@ -11,14 +11,14 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-vpc
+          Value: {{ $config.global.appname }}-vpc
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}
+          Value: {{ $config.global.appname }}-gateway
 
   FlowLogRole:
     Type: AWS::IAM::Role
@@ -33,7 +33,7 @@ Resources:
           Action:
             - "sts:AssumeRole"
       Path: "/"
-      RoleName: {{ $config.global.environmentName }}-vpc-flow-log
+      RoleName: {{ $config.global.appname }}-vpc-flow-log
 
   FlowLogPolicy:
     Type: AWS::IAM::Policy
@@ -57,7 +57,7 @@ Resources:
   CloudWatchLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: {{ $config.global.environmentName }}-flow-logs
+      LogGroupName: {{ $config.global.appname }}-flow-logs
       RetentionInDays: {{ $config.infra.vpcFlowLogRetention }}
 
   FlowLog:
@@ -84,7 +84,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-public-a
+          Value: {{ $config.global.appname }}-public-a
 
   PublicSubnetB:
     Type: AWS::EC2::Subnet
@@ -95,7 +95,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-public-b
+          Value: {{ $config.global.appname }}-public-b
 
   PublicSubnetC:
     Type: AWS::EC2::Subnet
@@ -106,7 +106,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-public-c
+          Value: {{ $config.global.appname }}-public-c
 
 
   PrivateSubnetA:
@@ -118,7 +118,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-private-a
+          Value: {{ $config.global.appname }}-private-a
 
   PrivateSubnetB:
     Type: AWS::EC2::Subnet
@@ -129,7 +129,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-private-b
+          Value: {{ $config.global.appname }}-private-b
 
   PrivateSubnetC:
     Type: AWS::EC2::Subnet
@@ -140,7 +140,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-private-c
+          Value: {{ $config.global.appname }}-private-c
 
   DBSubnet:
     Type: "AWS::RDS::DBSubnetGroup"
@@ -153,7 +153,7 @@ Resources:
         - !Ref PrivateSubnetC
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-db
+          Value: {{ $config.global.appname }}-db
 
   PublicServiceSubnet:
     Type: AWS::EC2::Subnet
@@ -164,7 +164,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-service-c
+          Value: {{ $config.global.appname }}-service-c
 
   NatGatewayAEIP:
     Type: AWS::EC2::EIP
@@ -208,7 +208,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-public
+          Value: {{ $config.global.appname }}-public
 
   DefaultPublicRoute:
     Type: AWS::EC2::Route
@@ -248,7 +248,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-private-a
+          Value: {{ $config.global.appname }}-private-a
 
   DefaultPrivateRouteA:
     Type: AWS::EC2::Route
@@ -269,7 +269,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-private-b
+          Value: {{ $config.global.appname }}-private-b
 
   DefaultPrivateRouteB:
     Type: AWS::EC2::Route
@@ -290,7 +290,7 @@ Resources:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: {{ $config.global.environmentName }}-private-c
+          Value: {{ $config.global.appname }}-private-c
 
   DefaultPrivateRouteC:
     Type: AWS::EC2::Route
@@ -310,46 +310,40 @@ Outputs:
     Description: ID of the created VPC
     Value: !Ref VPC
     Export:
-      Name: !Join ["-", ["VpcId", {{ $config.global.environmentName }}]]
-
-  VpcName:
-    Description: Name of the created VPC
-    Value: {{ $config.global.environmentName }}-vpc
-    Export:
-      Name: !Join ["-", ["VpcName", {{ $config.global.environmentName }}]]
+      Name: !Join ["-", ["VpcId", {{ $config.global.appname }}]]
 
   PublicSubnets:
     Description: A list of the public subnets
     Value: !Join [ ",", [ !Ref PublicSubnetA, !Ref PublicSubnetB, !Ref PublicSubnetC ]]
     Export:
-      Name: !Join ["-", ["PublicSubnets", {{ $config.global.environmentName }}]]
+      Name: !Join ["-", ["PublicSubnets", {{ $config.global.appname }}]]
 
   PrivateSubnets:
     Description: A list of the private subnets
     Value: !Join [ ",", [ !Ref PrivateSubnetA, !Ref PrivateSubnetB, !Ref PrivateSubnetC ]]
     Export:
-      Name: !Join ["-", ["PrivateSubnets", {{ $config.global.environmentName }}]]
+      Name: !Join ["-", ["PrivateSubnets", {{ $config.global.appname }}]]
 
   NetworkCidr:
-    Description: Network cidr used by {{ $config.global.environmentName }}.
+    Description: Network cidr used by {{ $config.global.appname }}.
     Value: {{ $config.infra.vpcCIDR }}
     Export:
-      Name: !Join ["-", ["NetworkCidr", {{ $config.global.environmentName }}]]
+      Name: !Join ["-", ["NetworkCidr", {{ $config.global.appname }}]]
 
   NatGateways:
     Description: Natgateway logical ids in
     Value: !Join [ ",", [ !Ref NatGatewayA, !Ref NatGatewayB, !Ref NatGatewayC ]]
     Export:
-      Name: !Join ["-", ["NatGateways", {{ $config.global.environmentName }}]]
+      Name: !Join ["-", ["NatGateways", {{ $config.global.appname }}]]
 
   PublicServiceSubnet:
     Description: Service subnet which is used to provision utilities e.g. bastion.
     Value: !Ref PublicServiceSubnet
     Export:
-      Name: !Join ["-", ["PublicServiceSubnet", {{ $config.global.environmentName }}]]
+      Name: !Join ["-", ["PublicServiceSubnet", {{ $config.global.appname }}]]
 
   DBSubnet:
     Description: The DB subnet.
     Value: !Ref DBSubnet
     Export:
-      Name: !Join ["-", ["DBSubnet", {{ $config.global.environmentName }}]]
+      Name: !Join ["-", ["DBSubnet", {{ $config.global.appname }}]]

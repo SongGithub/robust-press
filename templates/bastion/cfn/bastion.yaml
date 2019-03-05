@@ -8,7 +8,7 @@ Resources:
   BastionASG:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:
-      AutoScalingGroupName: !Sub bastion.{{ $config.global.environmentName}}
+      AutoScalingGroupName: !Sub bastion.{{ $config.global.environmentName }}
       AvailabilityZones:
         Fn::GetAZs:
           Ref: "AWS::Region"
@@ -20,7 +20,7 @@ Resources:
       MaxSize: 1
       Tags:
         - Key: Name
-          Value: !Sub bastion.{{ $config.global.environmentName}}
+          Value: !Sub bastion.{{ $config.global.environmentName }}
           PropagateAtLaunch: true
       TerminationPolicies:
         - OldestInstance
@@ -28,7 +28,7 @@ Resources:
         Fn::Split:
           - ','
           - Fn::ImportValue:
-              Fn::Sub: PublicSubnets-{{ $config.global.environmentName}}
+              Fn::Sub: PublicSubnets-{{ $config.global.appname }}
 
   BastionLaunchConfiguration:
     Type: "AWS::AutoScaling::LaunchConfiguration"
@@ -96,7 +96,7 @@ Resources:
       IamInstanceProfile: !Ref BastionProfile
       SecurityGroups:
       - Fn::ImportValue:
-          BastionSecurityGroup-{{ $config.global.environmentName}}
+          BastionSecurityGroup-{{ $config.global.environmentName }}
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
@@ -111,7 +111,7 @@ Resources:
   BastionLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName : !Sub bastion-{{ $config.global.environmentName}}
+      LogGroupName : !Sub bastion-{{ $config.global.environmentName }}
       RetentionInDays: 7
 
   BastionProfile:

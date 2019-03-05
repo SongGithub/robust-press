@@ -1,7 +1,7 @@
 {{- $config := (datasource "config") -}}
 ---
 AWSTemplateFormatVersion:  "2010-09-09"
-Description: "This stack serves as foundation for the app. It contains VPC, subnet, NAT, EIP, etc"
+Description: "This stack serves as foundation for the app. It contains database setup"
 Resources:
   DB:
     Type: AWS::RDS::DBInstance
@@ -17,7 +17,7 @@ Resources:
       DBName: mySql{{ $config.global.environmentName | strings.ReplaceAll "-" "" }}
       DBSubnetGroupName:
         Fn::ImportValue:
-          DBSubnet-{{ $config.global.environmentName }}
+          DBSubnet-{{ $config.global.appname }}
       EnableIAMDatabaseAuthentication: true
       EnablePerformanceInsights: false
       Engine: "MySQL"
@@ -36,7 +36,7 @@ Resources:
           Value: {{ $config.global.environmentName }}
       VPCSecurityGroups:
         - Fn::ImportValue:
-            DatabaseSecurityGroup-{{ $config.global.environmentName}}
+            DatabaseSecurityGroup-{{ $config.global.environmentName }}
 Outputs:
   DatabaseInstanceEndpointAddress:
     Description: db Endpoint address

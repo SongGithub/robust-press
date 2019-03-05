@@ -4,7 +4,7 @@ dcr="docker-compose run --rm"
 
 set -e
 
-if [ "$#" -lt 2 ]; then
+if [ "$#" -lt 1 ]; then
   echo "Usage: bin/deploy_cfn <component_name> <env> <artifact_version>"
   exit 1
 fi
@@ -12,6 +12,12 @@ fi
 component_name=$1
 env=$2
 artifact_version=${3:-0}
+
+if [ -z "$env" ]; then
+  $dcr kt clean && $dcr kt deploy -t cfn \
+    -c "$component_name" \
+    -e default
+fi
 
 $dcr kt clean && $dcr kt deploy -t cfn \
   -c "$component_name" \

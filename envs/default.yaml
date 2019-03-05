@@ -1,6 +1,7 @@
 ---
 global:
   amiID: "ami-08c26730c8ee004fa"
+  appname: "wordpress"
 
 artifactStore:
   name: wp-content-2019
