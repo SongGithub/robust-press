@@ -9,22 +9,23 @@ before_install: "./bin/install_aws_cred"
 install: docker-compose pull --parallel
 jobs:
   include:
-  - stage: build_deploy_dev
-    if: tag IS blank
+  - stage: shared-stage - ensure common infra & build artifact
     script:
       - "docker-compose run --rm lint"
       - "./bin/deploy_cfn infra"
       - "./bin/deploy_cfn ci"
       - "./bin/deploy_cfn s3"
       - "./bin/build_publish_artifact $TRAVIS_BUILD_NUMBER"
-
+  - stage: deploy_dev
+    if: tag IS blank
+    script:
       - "./bin/deploy_cfn securityGroups dev"
       - "./bin/deploy_cfn bastion dev"
       - "travis_wait ./bin/deploy_cfn rds dev"
       - "./bin/deploy_cfn app dev $TRAVIS_BUILD_NUMBER"
       - "./bin/deploy_cfn dns dev"
 
-  - stage: build_deploy_prod
+  - stage: deploy_prod
     if: tag IS present
     script:
       - "./bin/deploy_cfn securityGroups prod"
