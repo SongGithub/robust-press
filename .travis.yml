@@ -19,7 +19,7 @@ jobs:
 
       - "./bin/deploy_cfn securityGroups dev"
       - "./bin/deploy_cfn bastion dev"
-      - "./bin/deploy_cfn rds dev"
+      - "travis_wait ./bin/deploy_cfn rds dev"
     # build_n_deploy_app
       - "./bin/deploy_cfn app dev $TRAVIS_BUILD_NUMBER"
     # - stage: deploy_dns
@@ -30,7 +30,7 @@ jobs:
     script:
       - "./bin/deploy_cfn securityGroups prod"
       - "./bin/deploy_cfn bastion prod"
-      - "./bin/deploy_cfn rds prod"
+      - "travis_wait ./bin/deploy_cfn rds prod"
     # build_n_deploy_app
       - "./bin/deploy_cfn app prod $TRAVIS_BUILD_NUMBER"
     # - stage: deploy_dns
