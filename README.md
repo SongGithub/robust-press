@@ -19,6 +19,13 @@
 - Secure: RDS root secrets are saved to the Parameter Store, and use AWS Cloudformation `retrieve` function to decrypt
 - Dev env has exact same infrastructre setup, only difference is in configurations. To trigger a build to prod, just add a git tag!
 
+## Workflow
+- to deploy to dev environment, just push code up the repo
+- to deploy to prod environment, push a new git tag to the repo.
+Note: solution to promote the same artifact to prod is done
+by building on the same git commit, but through git tag. So in here, due to the Travis CI, the way to signal to promote an
+artifact is by push a git tag which associates with same git commit.
+
 ## Initial setup
 
 ### RDS secret deployment
