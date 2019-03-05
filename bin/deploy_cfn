@@ -16,10 +16,10 @@ artifact_version=${3:-0}
 if [ -z "$env" ]; then
   $dcr kt clean && $dcr kt deploy -t cfn \
     -c "$component_name" \
-    -e default
+    -e base
 fi
 
 $dcr kt clean && $dcr kt deploy -t cfn \
   -c "$component_name" \
-  -e default -e "$env" \
+  -e base -e "$env" \
   -p artifact_version="$artifact_version"
