@@ -87,5 +87,6 @@ while prod has an URL [http://wordpress.midu.com.au](http://wordpress.midu.com.a
 - When the build pipeline is running, none of the Cloudformation stacks should be in `IN_PROGRESS` status
 
 ## Short-commings/TO-DOs
+- Database could be more HA by using AWS RDS cluster with data replication
 - Permissions given to the CI user could be narrowed down. It has been given full-access to many types of resources.
 - config file `wp-config.php` could be compiled dynamically with env specific settings such as URL.
